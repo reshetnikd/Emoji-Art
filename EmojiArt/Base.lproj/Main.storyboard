@@ -75,17 +75,24 @@
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="7f1-4t-K6r">
                                 <rect key="frame" x="0.0" y="0.0" width="791.5" height="834"/>
                                 <subviews>
-                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="5mY-u6-777" customClass="EmojiArtView" customModule="EmojiArt" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="0.0" width="791.5" height="834"/>
-                                        <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
-                                    </view>
+                                    <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gAU-0F-qhL">
+                                        <rect key="frame" x="8" y="8" width="776" height="818"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" priority="250" constant="776" id="oTG-Y1-2Pp"/>
+                                            <constraint firstAttribute="height" priority="250" constant="818" id="y1Q-H1-vou"/>
+                                        </constraints>
+                                        <viewLayoutGuide key="contentLayoutGuide" id="fD7-n2-Yyi"/>
+                                        <viewLayoutGuide key="frameLayoutGuide" id="oMt-yR-C4Q"/>
+                                    </scrollView>
                                 </subviews>
                                 <color key="backgroundColor" cocoaTouchSystemColor="groupTableViewBackgroundColor"/>
                                 <constraints>
-                                    <constraint firstAttribute="trailing" secondItem="5mY-u6-777" secondAttribute="trailing" id="0ow-k6-beh"/>
-                                    <constraint firstAttribute="bottom" secondItem="5mY-u6-777" secondAttribute="bottom" id="Mwl-Cb-ccp"/>
-                                    <constraint firstItem="5mY-u6-777" firstAttribute="leading" secondItem="7f1-4t-K6r" secondAttribute="leading" id="vUU-gw-VA7"/>
-                                    <constraint firstItem="5mY-u6-777" firstAttribute="top" secondItem="7f1-4t-K6r" secondAttribute="top" id="vWW-fV-npl"/>
+                                    <constraint firstItem="gAU-0F-qhL" firstAttribute="centerX" secondItem="7f1-4t-K6r" secondAttribute="centerX" id="9ig-gN-iOr"/>
+                                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="gAU-0F-qhL" secondAttribute="trailing" id="AuX-Rm-dx8"/>
+                                    <constraint firstItem="gAU-0F-qhL" firstAttribute="centerY" secondItem="7f1-4t-K6r" secondAttribute="centerY" id="FHK-2R-FFk"/>
+                                    <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="gAU-0F-qhL" secondAttribute="bottom" id="PmN-P8-BdB"/>
+                                    <constraint firstItem="gAU-0F-qhL" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="7f1-4t-K6r" secondAttribute="leading" id="dAL-As-fHC"/>
+                                    <constraint firstItem="gAU-0F-qhL" firstAttribute="top" relation="greaterThanOrEqual" secondItem="7f1-4t-K6r" secondAttribute="top" id="ol2-5M-hXm"/>
                                 </constraints>
                             </view>
                         </subviews>
@@ -100,12 +107,14 @@
                     </view>
                     <connections>
                         <outlet property="dropZone" destination="7f1-4t-K6r" id="lTz-oQ-Hi0"/>
-                        <outlet property="emojiArtView" destination="5mY-u6-777" id="42Y-rB-Gif"/>
+                        <outlet property="scrollView" destination="gAU-0F-qhL" id="r4E-PX-gAJ"/>
+                        <outlet property="scrollViewHeight" destination="y1Q-H1-vou" id="xB7-FE-vkg"/>
+                        <outlet property="scrollViewWidth" destination="oTG-Y1-2Pp" id="BTV-nn-xwP"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-626" y="446"/>
+            <point key="canvasLocation" x="-626.43884892086328" y="445.32374100719426"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="s4J-3V-ov0">

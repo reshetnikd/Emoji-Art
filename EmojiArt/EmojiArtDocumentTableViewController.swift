@@ -21,6 +21,13 @@ class EmojiArtDocumentTableViewController: UITableViewController {
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
     }
+    
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        if splitViewController?.preferredDisplayMode != UISplitViewController.DisplayMode.primaryOverlay {
+            splitViewController?.preferredDisplayMode = UISplitViewController.DisplayMode.primaryOverlay
+        }
+    }
 
     // MARK: - Table view data source
 
