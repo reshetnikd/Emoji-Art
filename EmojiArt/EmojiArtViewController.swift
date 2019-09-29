@@ -52,8 +52,8 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
             }
         }
     }
-    var emojis: [String] = "😀🎁✈️🎱🍎🐶🐝☕️🎼🚲♣️👨‍🎓✏️🌈🤡🎓👻☎️".map { (Character) -> String in
-        return String(Character)
+    var emojis: [String] = "😀🎁✈️🎱🍎🐶🐝☕️🎼🚲♣️👨‍🎓✏️🌈🤡🎓👻☎️".map { (symbol) -> String in
+        return String(symbol)
     }
     
     private var font: UIFont {
@@ -121,11 +121,11 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
                 }
             } else {
                 let placeholderContext = coordinator.drop(item.dragItem, to: UICollectionViewDropPlaceholder(insertionIndexPath: destinationIndexPath, reuseIdentifier: "DropPlaceholderCell"))
-                item.dragItem.itemProvider.loadObject(ofClass: NSAttributedString.self) { (NSItemProviderReading, Error) in
+                item.dragItem.itemProvider.loadObject(ofClass: NSAttributedString.self) { (provider, error) in
                     DispatchQueue.main.async {
-                        if let attributedString = NSItemProviderReading as? NSAttributedString {
-                            placeholderContext.commitInsertion { (IndexPath) in
-                                self.emojis.insert(attributedString.string, at: IndexPath.item)
+                        if let attributedString = provider as? NSAttributedString {
+                            placeholderContext.commitInsertion { (insertionIndexPath) in
+                                self.emojis.insert(attributedString.string, at: insertionIndexPath.item)
                             }
                         } else {
                             placeholderContext.deletePlaceholder()
