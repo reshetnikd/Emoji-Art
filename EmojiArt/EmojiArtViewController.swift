@@ -106,9 +106,42 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
         emojiCollectionView.reloadSections(IndexSet(integer: 0))
     }
     
+    @IBAction func save(_ sender: UIBarButtonItem) {
+        if let json = emojiArt?.json {
+            if let url = try? FileManager.default.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            ).appendingPathComponent("Untitled.json") {
+                do {
+                    try json.write(to: url)
+                    print("Saved Successfully!")
+                } catch let error {
+                    print("Couldn't save \(error)")
+                }
+            }
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        if let url = try? FileManager.default.url(
+            for: .documentDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ).appendingPathComponent("Untitled.json") {
+            if let jsonData = try? Data(contentsOf: url) {
+                emojiArt = EmojiArt(json: jsonData)
+            }
+        }
     }
     
     private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
