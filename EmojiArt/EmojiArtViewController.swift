@@ -11,7 +11,6 @@ import UIKit
 class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScrollViewDelegate, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
     
     // MARK: - Model
-    
     var document: EmojiArtDocument?
     var emojiArt: EmojiArt? {
         get {
@@ -68,7 +67,6 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
             emojiCollectionView.delegate = self
             emojiCollectionView.dragDelegate = self
             emojiCollectionView.dropDelegate = self
-            emojiCollectionView.dragInteractionEnabled = true
         }
     }
     @IBOutlet weak var scrollViewWidth: NSLayoutConstraint!
@@ -99,6 +97,7 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     
     private var _emojiArtBackgroundImageURL: URL?
     private var addingEmoji = false
+    private var suppressBadURLWarnings = false
     private var font: UIFont {
         return UIFontMetrics(forTextStyle: UIFont.TextStyle.body).scaledFont(for: UIFont.preferredFont(forTextStyle: UIFont.TextStyle.body).withSize(64.0))
     }
@@ -108,20 +107,21 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
         emojiCollectionView.reloadSections(IndexSet(integer: 0))
     }
     
-    @IBAction func save(_ sender: UIBarButtonItem? = nil) {
-        document?.emojiArt = emojiArt
-        if document?.emojiArt != nil {
-            document?.updateChangeCount(.done)
-        }
-    }
-    
-    @IBAction func close(_ sender: UIBarButtonItem) {
-        save()
-        if document?.emojiArt != nil {
-            document?.thumbnail = emojiArtView.snapshot
-        }
-        dismiss(animated: true) {
-            self.document?.close()
+    @IBAction func save(_ sender: UIBarButtonItem) {
+        if let json = emojiArt?.json {
+            if let url = try? FileManager.default.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            ).appendingPathComponent("Untitled.json") {
+                do {
+                    try json.write(to: url)
+                    print("Saved Successfully!")
+                } catch let error {
+                    print("Couldn't save \(error)")
+                }
+            }
         }
     }
     
@@ -133,12 +133,16 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        document?.open(completionHandler: { (success) in
-            if success {
-                self.title = self.document?.localizedName
-                self.emojiArt = self.document?.emojiArt
+        if let url = try? FileManager.default.url(
+            for: .documentDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ).appendingPathComponent("Untitled.json") {
+            if let jsonData = try? Data(contentsOf: url) {
+                emojiArt = EmojiArt(json: jsonData)
             }
-        })
+        }
     }
     
     private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
@@ -148,6 +152,23 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
             return [dragItem]
         } else {
             return []
+        }
+    }
+    
+    private func presentBadURLWarning(for url: URL) {
+        if !suppressBadURLWarnings {
+            let alert = UIAlertController(
+                title: "Image Transfer Failed",
+                message: "Couldn't transfer the dropped image from its source. \nShow this warning in the futer?",
+                preferredStyle: UIAlertController.Style.alert
+            )
+            
+            alert.addAction(UIAlertAction(title: "Keep Warning", style: UIAlertAction.Style.default))
+            alert.addAction(UIAlertAction(title: "Stop Warning", style: UIAlertAction.Style.destructive, handler: { (action) in
+                self.suppressBadURLWarnings = true
+            }))
+            
+            present(alert, animated: true)
         }
     }
     
@@ -279,11 +300,24 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
         imageFetcher = ImageFetcher() { (url, image) in
             DispatchQueue.main.async {
                 self.emojiArtBackgroundImage = (url, image)
+//                self.documentChanged()
             }
         }
         session.loadObjects(ofClass: NSURL.self) { (nsurls) in
             if let url = nsurls.first as? URL {
-                self.imageFetcher.fetch(url)
+//                self.imageFetcher.fetch(url)
+                DispatchQueue.global(qos: DispatchQoS.QoSClass.userInitiated).async {
+                    if let imageData = try? Data(contentsOf: url.imageURL), let image = UIImage(data: imageData) {
+                        DispatchQueue.main.async {
+                            self.emojiArtBackgroundImage = (url, image)
+//                            self.documentChanged()
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            self.presentBadURLWarning(for: url)
+                        }
+                    }
+                }
             }
         }
         session.loadObjects(ofClass: UIImage.self) { (images) in
