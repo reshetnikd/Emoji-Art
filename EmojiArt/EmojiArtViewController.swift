@@ -8,7 +8,7 @@
 
 import UIKit
 
-class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScrollViewDelegate, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UICollectionViewDragDelegate, UICollectionViewDropDelegate, EmojiArtViewDelegate {
+class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScrollViewDelegate, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
     
     // MARK: - Model
     var document: EmojiArtDocument?
@@ -71,11 +71,7 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     }
     @IBOutlet weak var scrollViewWidth: NSLayoutConstraint!
     @IBOutlet weak var scrollViewHeight: NSLayoutConstraint!
-    lazy var emojiArtView: EmojiArtView = {
-        let eav = EmojiArtView()
-        eav.delegate = self
-        return eav
-    }()
+    var emojiArtView: EmojiArtView = EmojiArtView()
     var imageFetcher: ImageFetcher!
     var emojiArtBackgroundImage: (url: URL?, image: UIImage?) {
         get {
@@ -103,6 +99,7 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     private var addingEmoji: Bool = false
     private var suppressBadURLWarnings: Bool = false
     private var documentObserver: NSObjectProtocol?
+    private var emojiArtViewObserver: NSObjectProtocol?
     private var font: UIFont {
         return UIFontMetrics(forTextStyle: UIFont.TextStyle.body).scaledFont(for: UIFont.preferredFont(forTextStyle: UIFont.TextStyle.body).withSize(64.0))
     }
@@ -113,6 +110,10 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     }
     
     @IBAction func done(_ sender: UIBarButtonItem) {
+        if let observer = emojiArtViewObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        
         if document?.emojiArt != nil {
             document?.thumbnail = emojiArtView.snapshot
         }
@@ -139,13 +140,21 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
             object: document,
             queue: OperationQueue.main,
             using: { (notification) in
-                print("documentState changed to \(self.document?.documentState)")
+                print("documentState changed to \(String(describing: self.document?.documentState))")
             }
         )
         document?.open(completionHandler: { (success) in
             if success {
                 self.title = self.document?.localizedName
                 self.emojiArt = self.document?.emojiArt
+                self.emojiArtViewObserver = NotificationCenter.default.addObserver(
+                    forName: Notification.Name.EmojiArtViewDidChange,
+                    object: self.emojiArtView,
+                    queue: OperationQueue.main,
+                    using: { (notification) in
+                        self.documentChanged()
+                    }
+                )
             }
         })
     }
