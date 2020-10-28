@@ -8,7 +8,7 @@
 
 import UIKit
 
-class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScrollViewDelegate, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
+class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScrollViewDelegate, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UICollectionViewDragDelegate, UICollectionViewDropDelegate, EmojiArtViewDelegate {
     
     // MARK: - Model
     var document: EmojiArtDocument?
@@ -71,7 +71,11 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     }
     @IBOutlet weak var scrollViewWidth: NSLayoutConstraint!
     @IBOutlet weak var scrollViewHeight: NSLayoutConstraint!
-    var emojiArtView: EmojiArtView = EmojiArtView()
+    lazy var emojiArtView: EmojiArtView = {
+        let eav = EmojiArtView()
+        eav.delegate = self
+        return eav
+    }()
     var imageFetcher: ImageFetcher!
     var emojiArtBackgroundImage: (url: URL?, image: UIImage?) {
         get {
@@ -96,8 +100,9 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     }
     
     private var _emojiArtBackgroundImageURL: URL?
-    private var addingEmoji = false
-    private var suppressBadURLWarnings = false
+    private var addingEmoji: Bool = false
+    private var suppressBadURLWarnings: Bool = false
+    private var documentObserver: NSObjectProtocol?
     private var font: UIFont {
         return UIFontMetrics(forTextStyle: UIFont.TextStyle.body).scaledFont(for: UIFont.preferredFont(forTextStyle: UIFont.TextStyle.body).withSize(64.0))
     }
@@ -107,21 +112,17 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
         emojiCollectionView.reloadSections(IndexSet(integer: 0))
     }
     
-    @IBAction func save(_ sender: UIBarButtonItem) {
-        if let json = emojiArt?.json {
-            if let url = try? FileManager.default.url(
-                for: .documentDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: true
-            ).appendingPathComponent("Untitled.json") {
-                do {
-                    try json.write(to: url)
-                    print("Saved Successfully!")
-                } catch let error {
-                    print("Couldn't save \(error)")
+    @IBAction func done(_ sender: UIBarButtonItem) {
+        if document?.emojiArt != nil {
+            document?.thumbnail = emojiArtView.snapshot
+        }
+        
+        dismiss(animated: true) {
+            self.document?.close(completionHandler: { (success) in
+                if let observer = self.documentObserver {
+                    NotificationCenter.default.removeObserver(observer)
                 }
-            }
+            })
         }
     }
     
@@ -133,16 +134,20 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        if let url = try? FileManager.default.url(
-            for: .documentDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        ).appendingPathComponent("Untitled.json") {
-            if let jsonData = try? Data(contentsOf: url) {
-                emojiArt = EmojiArt(json: jsonData)
+        documentObserver = NotificationCenter.default.addObserver(
+            forName: UIDocument.stateChangedNotification,
+            object: document,
+            queue: OperationQueue.main,
+            using: { (notification) in
+                print("documentState changed to \(self.document?.documentState)")
             }
-        }
+        )
+        document?.open(completionHandler: { (success) in
+            if success {
+                self.title = self.document?.localizedName
+                self.emojiArt = self.document?.emojiArt
+            }
+        })
     }
     
     private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
@@ -169,6 +174,17 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
             }))
             
             present(alert, animated: true)
+        }
+    }
+    
+    func emojiArtViewDidChange(_ sender: EmojiArtView) {
+        documentChanged()
+    }
+    
+    func documentChanged() {
+        document?.emojiArt = emojiArt
+        if document?.emojiArt != nil {
+            document?.updateChangeCount(UIDocument.ChangeKind.done)
         }
     }
     
@@ -300,7 +316,7 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
         imageFetcher = ImageFetcher() { (url, image) in
             DispatchQueue.main.async {
                 self.emojiArtBackgroundImage = (url, image)
-//                self.documentChanged()
+                self.documentChanged()
             }
         }
         session.loadObjects(ofClass: NSURL.self) { (nsurls) in
@@ -310,7 +326,7 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate, UIScr
                     if let imageData = try? Data(contentsOf: url.imageURL), let image = UIImage(data: imageData) {
                         DispatchQueue.main.async {
                             self.emojiArtBackgroundImage = (url, image)
-//                            self.documentChanged()
+                            self.documentChanged()
                         }
                     } else {
                         DispatchQueue.main.async {
